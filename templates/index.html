@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Real-Time ISS Tracker</title>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #1a237e 100%);
+            color: #fff;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            text-align: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        h1 {
+            font-size: 2.8em;
+            margin-top: 30px;
+            margin-bottom: 0.2em;
+            color: #fff;
+            text-shadow: 0 0 18px #00e6ff, 0 0 8px #fff;
+            letter-spacing: 2px;
+            animation: glow 2s infinite alternate;
+        }
+        @keyframes glow {
+            from { text-shadow: 0 0 18px #00e6ff, 0 0 8px #fff; }
+            to { text-shadow: 0 0 32px #00e6ff, 0 0 16px #fff; }
+        }
+        .subtitle {
+            color: #b3e5fc;
+            font-size: 1.3em;
+            margin-bottom: 1.5em;
+            letter-spacing: 1px;
+        }
+        #map-container {
+            position: relative;
+            display: inline-block;
+            border-radius: 18px;
+            box-shadow: 0 8px 32px 0 rgba(0,0,0,0.45);
+            overflow: hidden;
+            margin-bottom: 1.5em;
+        }
+        #world-map {
+            border-radius: 18px;
+            box-shadow: 0 0 0 4px #00e6ff44;
+        }
+        #iss-dot {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle at 60% 40%, #ffeb3b 60%, #ff5722 100%);
+            border: 2.5px solid #fff;
+            border-radius: 50%;
+            box-shadow: 0 0 18px 6px #ff9800, 0 0 8px 2px #fff;
+            pointer-events: none;
+            transition: left 1s linear, top 1s linear;
+            z-index: 2;
+        }
+        #trail {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1;
+        }
+        .iss-info-card {
+            display: inline-block;
+            background: rgba(20, 30, 60, 0.92);
+            border-radius: 14px;
+            box-shadow: 0 2px 16px 0 #00e6ff44;
+            padding: 1.2em 2.2em;
+            margin: 0.5em auto 1.5em auto;
+            font-size: 1.25em;
+            color: #fff;
+            letter-spacing: 1px;
+        }
+        #coords {
+            font-size: 1.3em;
+            margin: 0.5em 0 0 0;
+            color: #00e6ff;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        #coords span {
+            color: #ffeb3b;
+            font-weight: bold;
+            font-size: 1.15em;
+        }
+        .footer {
+            margin-top: 2.5em;
+            color: #b3e5fc;
+            font-size: 1em;
+            letter-spacing: 1px;
+            opacity: 0.7;
+        }
+    </style>
+</head>
+<body>
+    <h1>Real-Time ISS Tracker</h1>
+    <div class="subtitle">Track the International Space Station live as it orbits Earth!</div>
+    <div id="map-container">
+        <img id="world-map" src="/static/world_map.png" width="1000" height="500" alt="World Map">
+        <canvas id="trail" width="1000" height="500"></canvas>
+        <div id="iss-dot"></div>
+    </div>
+    <div class="iss-info-card">
+        <div id="coords">Latitude: <span id="lat">--</span>°, Longitude: <span id="lon">--</span>°</div>
+        <div style="margin-top:0.7em; color:#b3e5fc; font-size:1em;">The ISS orbits Earth at ~28,000 km/h, completing a revolution every 90 minutes!</div>
+    </div>
+    
+    <script>
+        const MIN_LON = -180, MAX_LON = 180, MIN_LAT = -90, MAX_LAT = 90;
+        const MAP_WIDTH = 1000, MAP_HEIGHT = 500;
+        const issDot = document.getElementById('iss-dot');
+        const latSpan = document.getElementById('lat');
+        const lonSpan = document.getElementById('lon');
+        const trailCanvas = document.getElementById('trail');
+        const ctx = trailCanvas.getContext('2d');
+        let trail = [];
+
+        function lonLatToPixels(lon, lat) {
+            const x = ((lon - MIN_LON) / (MAX_LON - MIN_LON)) * MAP_WIDTH;
+            const y = MAP_HEIGHT - (((lat - MIN_LAT) / (MAX_LAT - MIN_LAT)) * MAP_HEIGHT);
+            return [x, y];
+        }
+
+        function drawTrail() {
+            ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+            if (trail.length > 1) {
+                ctx.beginPath();
+                ctx.moveTo(trail[0][0], trail[0][1]);
+                for (let i = 1; i < trail.length; i++) {
+                    ctx.lineTo(trail[i][0], trail[i][1]);
+                }
+                ctx.strokeStyle = 'cyan';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = '#0ff';
+                ctx.shadowBlur = 8;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+            }
+        }
+
+        async function updateISS() {
+            try {
+                const res = await fetch('/iss_location');
+                const data = await res.json();
+                if (data.latitude && data.longitude) {
+                    latSpan.textContent = data.latitude.toFixed(2);
+                    lonSpan.textContent = data.longitude.toFixed(2);
+                    const [x, y] = lonLatToPixels(data.longitude, data.latitude);
+                    issDot.style.left = (x - 9) + 'px';
+                    issDot.style.top = (y - 9) + 'px';
+                    trail.push([x, y]);
+                    if (trail.length > 50) trail.shift();
+                    drawTrail();
+                }
+            } catch (e) {
+                latSpan.textContent = '--';
+                lonSpan.textContent = '--';
+            }
+        }
+        setInterval(updateISS, 3000);
+        updateISS();
+    </script>
+</body>
+</html>
