@@ -1,10 +1,31 @@
+// Initialize the map
+const map = L.map('map').setView([0, 0], 2);
+
+// Add a tile layer
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+}).addTo(map);
+
+// Create a custom icon for the ISS
+const issIcon = L.icon({
+    iconUrl: 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/d0/International_Space_Station.svg/200px-International_Space_Station.svg.png',
+    iconSize: [50, 50],
+    iconAnchor: [25, 25],
+});
+
+// Create a marker for the ISS
+const issMarker = L.marker([0, 0], {icon: issIcon}).addTo(map);
+
+// Create a polyline for the trail
+const trail = L.polyline([], {color: 'cyan'}).addTo(map);
+
 // Animated stars background
 const starsCanvas = document.getElementById('stars-bg');
 const starsCtx = starsCanvas.getContext('2d');
 let stars = [];
 let shootingStars = [];
-const STAR_COUNT = 180;
-const SHOOTING_STAR_CHANCE = 0.032; // chance per frame
+const STAR_COUNT = 120;
+const SHOOTING_STAR_CHANCE = 0.015; // chance per frame
 const SHOOTING_STAR_MIN_SPEED = 8;
 const SHOOTING_STAR_MAX_SPEED = 16;
 const SHOOTING_STAR_LENGTH = 380;
@@ -124,51 +145,29 @@ window.addEventListener('resize', handleResize);
 resizeStarsCanvas();
 initStars();
 animateStars();
-const MIN_LON = -180, MAX_LON = 180, MIN_LAT = -90, MAX_LAT = 90;
-const MAP_WIDTH = 1000, MAP_HEIGHT = 500;
-const issDot = document.getElementById('iss-dot');
+
 const latSpan = document.getElementById('lat');
 const lonSpan = document.getElementById('lon');
-const trailCanvas = document.getElementById('trail');
-const ctx = trailCanvas.getContext('2d');
-let trail = [];
-
-function lonLatToPixels(lon, lat) {
-    const x = ((lon - MIN_LON) / (MAX_LON - MIN_LON)) * MAP_WIDTH;
-    const y = MAP_HEIGHT - (((lat - MIN_LAT) / (MAX_LAT - MIN_LAT)) * MAP_HEIGHT);
-    return [x, y];
-}
-
-function drawTrail() {
-    ctx.clearRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
-    if (trail.length > 1) {
-        ctx.beginPath();
-        ctx.moveTo(trail[0][0], trail[0][1]);
-        for (let i = 1; i < trail.length; i++) {
-            ctx.lineTo(trail[i][0], trail[i][1]);
-        }
-        ctx.strokeStyle = 'cyan';
-        ctx.lineWidth = 2;
-        ctx.shadowColor = '#0ff';
-        ctx.shadowBlur = 8;
-        ctx.stroke();
-        ctx.shadowBlur = 0;
-    }
-}
 
 async function updateISS() {
     try {
         const res = await fetch('/iss_location');
         const data = await res.json();
         if (data.latitude && data.longitude) {
-            latSpan.textContent = data.latitude.toFixed(2);
-            lonSpan.textContent = data.longitude.toFixed(2);
-            const [x, y] = lonLatToPixels(data.longitude, data.latitude);
-            issDot.style.left = (x - 9) + 'px';
-            issDot.style.top = (y - 9) + 'px';
-            trail.push([x, y]);
-            if (trail.length > 50) trail.shift();
-            drawTrail();
+            const lat = data.latitude;
+            const lon = data.longitude;
+
+            latSpan.textContent = lat.toFixed(2);
+            lonSpan.textContent = lon.toFixed(2);
+
+            // Update the marker position
+            issMarker.setLatLng([lat, lon]);
+
+            // Add the new position to the trail
+            trail.addLatLng([lat, lon]);
+
+            // Center the map on the ISS
+            map.panTo([lat, lon]);
         }
     } catch (e) {
         latSpan.textContent = '--';

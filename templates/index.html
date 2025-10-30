@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>Real-Time ISS Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+     integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+     crossorigin=""/>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
@@ -10,15 +13,16 @@
     <div class="subtitle">Track the International Space Station live as it orbits Earth!</div>
     <canvas id="stars-bg" style="position:fixed; left:0; top:0; width:100vw; height:100vh; z-index:0; pointer-events:none; background:transparent;"></canvas>
     <div id="map-container" style="position:relative; z-index:1;">
-        <img id="world-map" src="/static/world_map.png" width="1000" height="500" alt="World Map" style="position:relative; z-index:1; background:transparent;">
-        <canvas id="trail" width="1000" height="500" style="position:absolute; left:0; top:0; z-index:2; pointer-events:none; background:transparent;"></canvas>
-        <div id="iss-dot"></div>
+        <div id="map" style="width: 1000px; height: 500px;"></div>
     </div>
     <div class="iss-info-card">
         <div id="coords">Latitude: <span id="lat">--</span>°, Longitude: <span id="lon">--</span>°</div>
         <div style="margin-top:0.7em; color:#b3e5fc; font-size:1em;">The ISS orbits Earth at ~28,000 km/h, completing a revolution every 90 minutes!</div>
     </div>
     
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+     integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+     crossorigin=""></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 </body>
 </html>
